@@ -1,0 +1,10 @@
+#version 330 core
+in vec3 vertexColor;
+in float infected;
+
+out vec4 FragColor;
+
+void main() {
+    vec3 color = mix(vec3(0.2, 0.8, 0.3), vec3(1.0, 0.2, 0.2), infected);
+    FragColor = vec4(color, 1.0);
+}
