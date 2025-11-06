@@ -153,6 +153,8 @@
     <None Include="shader.cp" />
     <None Include="shader.fg" />
     <None Include="shader.vx" />
+    <None Include="shader2.cp" />
+    <None Include="shader3.cp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

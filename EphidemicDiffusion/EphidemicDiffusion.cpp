@@ -11,7 +11,7 @@ void process_input(GLFWwindow* window);
 
 camera _camera(glm::vec3(0.0f, 0.0f, 10.0f));
 
-renderer particleRenderer("name", 45, "shader.vx", "shader.fg", "shader.cp", nullptr, glm::mat4(1.0f), glm::mat4(1.0f), glm::mat4(1.0f));
+renderer particleRenderer("name", 0, "shader.vx", "shader.fg", "shader2.cp", nullptr, glm::mat4(1.0f), glm::mat4(1.0f), glm::mat4(1.0f));
 
 float lastX = WIDTH / 2.0f;
 float lastY = HEIGHT / 2.0f;

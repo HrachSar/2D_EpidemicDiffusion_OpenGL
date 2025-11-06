@@ -1,6 +1,6 @@
 #version 430 core
 
-layout(local_size_x = 500, local_size_y = 1, local_size_z = 1) in;
+layout(local_size_x = 10, local_size_y = 1, local_size_z = 1) in;
 
 
 layout(std430, binding = 1) readonly buffer AdjacencyBuffer{
@@ -17,6 +17,7 @@ layout(std430, binding = 4) buffer LastResultsBuffer{
 }; 
 
 uniform float infectionRate;
+uniform float alfa;
 uniform float dt;
 uniform float totalTime;
 uniform int nodeCount;
@@ -24,14 +25,15 @@ uniform uint randomSeed;
 uniform int startNodeIndex;
 uniform float D;
 
-shared float k1x[500], k1y[500];
-shared float k2x[500], k2y[500];
-shared float k3x[500], k3y[500];
-shared float k4x[500], k4y[500];
-shared float temp_x[500], temp_y[500];
-shared float S[500];  
-shared float I[500];
-shared float newI[500];
+shared float k1x[10], k1y[10];
+shared float k2x[10], k2y[10];
+shared float k3x[10], k3y[10];
+shared float k4x[10], k4y[10];
+shared float temp_x[10], temp_y[10];
+shared float S[10];  
+shared float I[10];
+shared float newI[10];
+shared float newS[10];
 
 uint rngState;
 
@@ -44,53 +46,63 @@ float random() {
     return float(rngState) / 4294967296.0;
 }
 
-void df(in float S[500], in float I[500], out float dS[500], out float dI[500], uint idx){
+void df(in float S[10], in float I[10], out float dS[10], out float dI[10], uint idx, float h){
 
 	if(idx >= nodeCount) return;
 
-	float infectedNeighbours = 0.0;
-	int degree = 0;
+    float reaction = infectionRate * S[idx] * I[idx];
+    float recovery = alfa * I[idx];
+    
+    float dS_reaction = -reaction + recovery;
+    float dI_reaction = reaction - recovery;
+
+
+	float diffI = 0.0;
+	float diffS = 0.0;
+	int degree = degrees[idx];
 
 	for(int j = 0; j < nodeCount; j++){
 		if(adjacency[idx * nodeCount + j] == 1){
-			infectedNeighbours += I[j];
+			diffI += I[j] - I[idx];
+			diffS += S[j] - S[idx];
 		}
 	}
 
-	degree = degrees[idx];
-	if (degree > 0){
-		dI[idx] = infectionRate * S[idx] * infectedNeighbours / float(degree);
-		dS[idx] = -infectionRate * S[idx] * infectedNeighbours / float(degree);
-	}else{
-		dI[idx] = 0;
-		dS[idx] = 0;
+	float dS_diffusion = 0.0;
+    float dI_diffusion = 0.0;
+	if(degree > 0){
+		dI_diffusion = diffI * D * h;
+		dS_diffusion = diffS * D * h;
 	}
+
+	dS[idx] = dS_reaction + dS_diffusion;
+	dI[idx] = dI_reaction + dI_diffusion;
 }
 
-void rk4_step(inout float S[500], inout float I[500], uint idx, float h){
+void rk4_step(inout float S[10], inout float I[10], uint idx, float h){
 
-	df(S, I, k1x, k1y, idx);
+	df(S, I, k1x, k1y, idx, h);
 	barrier();
 
 	temp_x[idx] = S[idx] + 0.5 * k1x[idx] * h;
 	temp_y[idx] = I[idx] + 0.5 * k1y[idx] * h;
 	barrier();
 
-	df(temp_x, temp_y, k2x, k2y, idx);
+	df(temp_x, temp_y, k2x, k2y, idx, h);
 	barrier();
 
 	temp_x[idx] = S[idx] + 0.5 * k2x[idx] * h;
 	temp_y[idx] = I[idx] + 0.5 * k2y[idx] * h;
 	barrier();
 
-	df(temp_x, temp_y, k3x, k3y, idx);
+	df(temp_x, temp_y, k3x, k3y, idx, h);
 	barrier();
 
 	temp_x[idx] = S[idx] + k3x[idx] * h;
 	temp_y[idx] = I[idx] + k3y[idx] * h;
 	barrier();
 
-	df(temp_x, temp_y, k4x, k4y, idx);
+	df(temp_x, temp_y, k4x, k4y, idx, h);
 	barrier();
 
 	float x = (h / 6.0) * (k1x[idx] + 2 * k2x[idx] + 2 * k3x[idx] + k4x[idx]);
@@ -104,29 +116,35 @@ void rk4_step(inout float S[500], inout float I[500], uint idx, float h){
 	barrier();
 }
 
-void diffuse(inout float S[500], inout float I[500], uint idx, float h){
+/* void diffuse(inout float S[500], inout float I[500], uint idx, float h){
 
 	if(idx >= nodeCount) return;
 
-	float diff = 0.0;
-	int degree = 0;
+	float diffI = 0.0;
+	float diffS = 0.0;
+	int degree = degrees[idx];
+
 	for(int j = 0; j < nodeCount; j++){
 		if(adjacency[idx * nodeCount + j] == 1){
-			degree++;
-			diff += I[idx] - I[j];
+			diffI += I[j] - I[idx];
+			diffS += S[j] - S[idx];
 		}
 	}
 	if(degree > 0){
-		diff /= float(degree);
+		newI[idx] = I[idx] + diffI * D * h / float(degree);
+		newS[idx] = S[idx] + diffS * D * h / float(degree);
+	}else{
+		newI[idx] = I[idx];
+		newS[idx] = S[idx];
 	}
-	newI[idx] = I[idx] + diff * D * h;
+
 	barrier();
 
 	I[idx] = clamp(newI[idx], 0.0, 1.0);
-	S[idx] = clamp(1 - I[idx], 0.0, 1.0);
+	S[idx] = clamp(newS[idx], 0.0, 1.0);
 
 	barrier();
-}
+} */
 
 void main(){
 	
@@ -145,7 +163,7 @@ void main(){
     float t = 0.0;
     while (t < totalTime) {
         rk4_step(S, I, idx, dt);
-		diffuse(S, I, idx, dt);
+		//diffuse(S, I, idx, dt);
         t += dt;
     }
 

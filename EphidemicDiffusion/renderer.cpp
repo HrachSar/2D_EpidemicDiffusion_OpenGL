@@ -129,6 +129,12 @@ void renderer::init() {
     }
     m_resultsData[m_startNode * 2 + 0] = 0;
     m_resultsData[m_startNode * 2 + 1] = 1;
+
+    m_resultsData[(m_startNode + 1) * 2 + 0] = 0;
+    m_resultsData[(m_startNode + 1) * 2 + 1] = 1;
+
+    m_resultsData[(m_startNode + 4) * 2 + 0] = 0;
+    m_resultsData[(m_startNode + 4) * 2 + 1] = 1;
     glBufferData(GL_SHADER_STORAGE_BUFFER, N * 2 * sizeof(float), m_resultsData.data(), GL_DYNAMIC_DRAW);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, m_resultsSSBO);
 
@@ -170,6 +176,9 @@ void renderer::runAllSimulations(float dt) {
     loc = glGetUniformLocation(m_computeID, "infectionRate");
     glUniform1f(loc, BETA);
 
+	loc = glGetUniformLocation(m_computeID, "alfa");
+    glUniform1f(loc, ALFA);
+
     loc = glGetUniformLocation(m_computeID, "dt");
     glUniform1f(loc, dt);
 
@@ -205,6 +214,7 @@ void renderer::render() {
     for (int i = 0; i < N; i++) {
         m_graph[i].susceptible = susceptible[i];
         m_graph[i].infected = infected[i];
+		printf("Node %d: S = %.8f I = %.8f\n", i, susceptible[i], infected[i]);
         //std::cout <<"Node " << i << ": " << "S = " << susceptible[i] << " I = " << infected[i] << std::endl;
     }
     m_shader.use();

@@ -4,12 +4,13 @@
 #include "resource_manager.h"
 #include <vector>
 
-#define N 500
+#define N 10
 #define M0 4
 #define M 4
 #define M_PI 3.14
 #define BETA 0.05
-#define D 0.4
+#define ALFA 0.2
+#define D 0.1
 
 const float FOV = 45.0f;
 const unsigned int WIDTH = 800;
