@@ -1,6 +1,6 @@
 #version 430 core
 
-layout(local_size_x = 500, local_size_y = 1, local_size_z = 1) in;
+layout(local_size_x = 10, local_size_y = 1, local_size_z = 1) in;
 
 
 layout(std430, binding = 1) readonly buffer AdjacencyBuffer{
@@ -17,6 +17,7 @@ layout(std430, binding = 4) buffer LastResultsBuffer{
 }; 
 
 uniform float infectionRate;
+uniform float alfa;
 uniform float dt;
 uniform float totalTime;
 uniform int nodeCount;
@@ -24,14 +25,14 @@ uniform uint randomSeed;
 uniform int startNodeIndex;
 uniform float D;
 
-shared float k1x[500], k1y[500];
-shared float k2x[500], k2y[500];
-shared float k3x[500], k3y[500];
-shared float k4x[500], k4y[500];
-shared float temp_x[500], temp_y[500];
-shared float S[500];  
-shared float I[500];
-shared float newI[500];
+shared float k1x[10], k1y[10];
+shared float k2x[10], k2y[10];
+shared float k3x[10], k3y[10];
+shared float k4x[10], k4y[10];
+shared float temp_x[10], temp_y[10];
+shared float S[10];  
+shared float I[10];
+shared float newI[10];
 
 uint rngState;
 
@@ -44,7 +45,7 @@ float random() {
     return float(rngState) / 4294967296.0;
 }
 
-void df(in float S[500], in float I[500], out float dS[500], out float dI[500], uint idx){
+void df(in float S[10], in float I[10], out float dS[10], out float dI[10], uint idx){
 
 	if(idx >= nodeCount) return;
 
@@ -67,7 +68,7 @@ void df(in float S[500], in float I[500], out float dS[500], out float dI[500], 
 	}
 }
 
-void rk4_step(inout float S[500], inout float I[500], uint idx, float h){
+void rk4_step(inout float S[10], inout float I[10], uint idx, float h){
 
 	df(S, I, k1x, k1y, idx);
 	barrier();
@@ -104,7 +105,7 @@ void rk4_step(inout float S[500], inout float I[500], uint idx, float h){
 	barrier();
 }
 
-void diffuse(inout float S[500], inout float I[500], uint idx, float h){
+void diffuse(inout float S[10], inout float I[10], uint idx, float h){
 
 	if(idx >= nodeCount) return;
 
@@ -142,12 +143,12 @@ void main(){
 	barrier();
 
     
-    float t = 0.0;
-    while (t < totalTime) {
-        rk4_step(S, I, idx, dt);
-		diffuse(S, I, idx, dt);
-        t += dt;
-    }
+  //   float t = 0.0;
+  //   while (t < totalTime) {
+  //       rk4_step(S, I, idx, dt);
+		// diffuse(S, I, idx, dt);
+  //       t += dt;
+  //   }
 
     lastResults[idx * 2 + 0] = S[idx]; 
     lastResults[idx * 2 + 1] = I[idx]; 

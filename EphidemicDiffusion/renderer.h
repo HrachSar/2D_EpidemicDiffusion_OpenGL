@@ -3,12 +3,13 @@
 
 #include "resource_manager.h"
 #include <vector>
+#include <inttypes.h>
 
-#define N 10
+#define N 500
 #define M0 4
 #define M 4
 #define M_PI 3.14
-#define BETA 0.05
+#define BETA 0.07
 #define ALFA 0.2
 #define D 0.1
 
@@ -20,8 +21,8 @@ const unsigned int HEIGHT = 800;
 typedef struct
 {
     float x, y;
-    float infected;
-    float susceptible;
+    int infected;
+    int susceptible;
     int edge_list[N];
 } Node;
 
@@ -45,8 +46,8 @@ public:
     int m_startNode;
     bool m_simulationsRun;
     std::vector<Node> m_graph;
-    std::vector<float> m_resultsData;
-    std::vector<float> m_lastResults;
+    std::vector<int> m_resultsData;
+    std::vector<int> m_lastResults;
 
     renderer(const char* name, int startNode, const char* vShader, const char* fShader, const char* cShader, const char* texture = nullptr, glm::mat4 model = glm::mat4(1.0f), glm::mat4 view = glm::mat4(1.0f), glm::mat4 projection = glm::mat4(1.0f));
     ~renderer();
@@ -58,7 +59,7 @@ public:
     void runAllSimulations(float dt);
     int getInfectedCountForStartNode(int startNode);
     void free();
-    void getSimulationResults(int startNode, float* susceptibleStates, float* infectedStates);
+    void getSimulationResults(int startNode, int* susceptibleStates, int* infectedStates);
     void setViewMatrix(glm::mat4 matrix);
 };
 

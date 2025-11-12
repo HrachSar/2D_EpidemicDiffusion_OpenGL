@@ -78,10 +78,10 @@ void renderer::init() {
     glEnableVertexAttribArray(0);
 
     //infected 
-    glVertexAttribPointer(1, 1, GL_FLOAT, GL_FALSE, sizeof(Node), (void*)offsetof(Node, infected));
+    glVertexAttribIPointer(1, 1, GL_INT, sizeof(Node), (void*)offsetof(Node, infected));
     glEnableVertexAttribArray(1);
     //susceptible
-    glVertexAttribPointer(2, 1, GL_FLOAT, GL_FALSE, sizeof(Node), (void*)offsetof(Node, susceptible));
+    glVertexAttribIPointer(2, 1, GL_INT, sizeof(Node), (void*)offsetof(Node, susceptible));
     glEnableVertexAttribArray(2);
 
     glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -124,38 +124,33 @@ void renderer::init() {
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, m_resultsSSBO);
     m_resultsData.resize(N * 2, 0);
     for (int i = 0; i < N; i++) {
-        m_resultsData[i * 2 + 0] = 1;
-        m_resultsData[i * 2 + 1] = 0;
+        m_resultsData[i * 2 + 0] = 50;
+        m_resultsData[i * 2 + 1] = 50;
     }
-    m_resultsData[m_startNode * 2 + 0] = 0;
-    m_resultsData[m_startNode * 2 + 1] = 1;
+    m_resultsData[m_startNode * 2 + 0] = 60;
+    m_resultsData[m_startNode * 2 + 1] = 40;
 
-    m_resultsData[(m_startNode + 1) * 2 + 0] = 0;
-    m_resultsData[(m_startNode + 1) * 2 + 1] = 1;
-
-    m_resultsData[(m_startNode + 4) * 2 + 0] = 0;
-    m_resultsData[(m_startNode + 4) * 2 + 1] = 1;
-    glBufferData(GL_SHADER_STORAGE_BUFFER, N * 2 * sizeof(float), m_resultsData.data(), GL_DYNAMIC_DRAW);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, N * 2 * sizeof(int), m_resultsData.data(), GL_DYNAMIC_DRAW);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, m_resultsSSBO);
 
     glGenBuffers(1, &m_lastResultsSSBO);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, m_lastResultsSSBO);
     m_lastResults.resize(N * 2, 0);
-    glBufferData(GL_SHADER_STORAGE_BUFFER, N * 2 * sizeof(float), m_lastResults.data(), GL_DYNAMIC_DRAW);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, N * 2 * sizeof(int), m_lastResults.data(), GL_DYNAMIC_DRAW);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, m_lastResultsSSBO);
 
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
 }
 
-void renderer::getSimulationResults(int startNode, float* susceptibleStates, float* infectedStates) {
+void renderer::getSimulationResults(int startNode, int* susceptibleStates, int* infectedStates) {
     if (startNode < 0 || startNode >= N) return;
 
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, m_lastResultsSSBO);
 
     glGetBufferSubData(GL_SHADER_STORAGE_BUFFER,
         0,
-        N * 2 * sizeof(float),
+        N * 2 * sizeof(int),
         m_lastResults.data());
 
 
@@ -169,6 +164,10 @@ void renderer::getSimulationResults(int startNode, float* susceptibleStates, flo
 }
 
 void renderer::runAllSimulations(float dt) {
+
+    //glBindBuffer(GL_SHADER_STORAGE_BUFFER, m_resultsSSBO);
+    //glGetBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, N * 2 * sizeof(int), m_resultsData.data());
+    //glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
     glUseProgram(m_computeID);  // Use COMPUTE program
 
@@ -195,26 +194,41 @@ void renderer::runAllSimulations(float dt) {
     glUniform1i(loc, m_startNode);  
 
     loc = glGetUniformLocation(m_computeID, "D");
-    glUniform1i(loc, D);
+    glUniform1f(loc, D);
 
+    int numWorkGroups = (N + 9) / 10;
     glDispatchCompute(1, 1, 1);
     glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 
-    std::swap(m_resultsSSBO, m_lastResultsSSBO);
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, m_resultsSSBO);  
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, m_lastResultsSSBO);
 
+    //glBindBuffer(GL_SHADER_STORAGE_BUFFER, m_lastResultsSSBO);
+    //glGetBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, N * 2 * sizeof(int), m_lastResults.data());
+
+    //glBindBuffer(GL_SHADER_STORAGE_BUFFER, m_resultsSSBO);
+    //glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, N * 2 * sizeof(int), m_lastResults.data());
+
+    //glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+
+    //glBindBuffer(GL_COPY_READ_BUFFER, m_lastResultsSSBO);
+    //glBindBuffer(GL_COPY_WRITE_BUFFER, m_resultsSSBO);
+    //glCopyBufferSubData(GL_COPY_READ_BUFFER, GL_COPY_WRITE_BUFFER, 0, 0, 2 * N * sizeof(int));
+    
+
+    std::swap(m_resultsSSBO, m_lastResultsSSBO); 
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, m_resultsSSBO);  
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, m_lastResultsSSBO); 
+	
     printf("All simulations completed!\n");
 }
 
 void renderer::render() {
-    float susceptible[N], infected[N];
+    int susceptible[N], infected[N];
     getSimulationResults(m_startNode, susceptible, infected);
 
     for (int i = 0; i < N; i++) {
         m_graph[i].susceptible = susceptible[i];
         m_graph[i].infected = infected[i];
-		printf("Node %d: S = %.8f I = %.8f\n", i, susceptible[i], infected[i]);
+		printf("Node %d: S = %d I = %d\n", i, susceptible[i], infected[i]);
         //std::cout <<"Node " << i << ": " << "S = " << susceptible[i] << " I = " << infected[i] << std::endl;
     }
     m_shader.use();
@@ -306,7 +320,7 @@ void renderer::setViewMatrix(glm::mat4 matrix) {
 }
 
 int renderer::getInfectedCountForStartNode(int startNode) {
-    float susceptible[N], infected[N];
+    int susceptible[N], infected[N];
     getSimulationResults(startNode, susceptible, infected);
 
     int count = 0;

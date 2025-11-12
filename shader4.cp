@@ -1,6 +1,6 @@
 #version 430 core
 
-layout(local_size_x = 500, local_size_y = 1, local_size_z = 1) in;
+layout(local_size_x = 10, local_size_y = 1, local_size_z = 1) in;
 
 
 layout(std430, binding = 1) readonly buffer AdjacencyBuffer{
@@ -10,10 +10,10 @@ layout(std430, binding = 2) readonly buffer DegreeBuffer{
 	int degrees[];
 };
 layout(std430, binding = 3) buffer ResultsBuffer{
-	int results[];
+	float results[];
 };
 layout(std430, binding = 4) buffer LastResultsBuffer{
-	int lastResults[];
+	float lastResults[];
 }; 
 
 uniform float infectionRate;
@@ -25,11 +25,10 @@ uniform uint randomSeed;
 uniform int startNodeIndex;
 uniform float D;
 
-
-shared int S[500];  
-shared int I[500];
-shared int newI[500];
-shared int newS[500];
+shared float S[10];  
+shared float I[10];
+shared float newI[10];
+shared float newS[10]; 
 
 uint rngState;
 
@@ -57,7 +56,7 @@ void meet(uint idx){
     int person1 = randomInt(0, total);
     int person2 = randomInt(0, total);
 
-    if(person1 < s && (person2 >= s && person2 < total) && i > 0){
+    if(person1 < s && (person2 >= s && person2 < total)){
         float infProb = random();
 
         if(infProb < infectionRate){
@@ -76,8 +75,7 @@ void recover(uint idx){
     float recProb = random();
     if(recProb < alfa){
             S[idx]++;
-            if(i > 0)
-                I[idx]--;
+            I[idx]--;
     }
 }
 
@@ -120,7 +118,7 @@ void diffuse(uint idx){
             // Move S
             atomicAdd(newS[idx], -1);
             atomicAdd(newS[neighborNode], 1);
-        } else if(person >= s){
+        } else {
             // Move I
             atomicAdd(newI[idx], -1);
             atomicAdd(newI[neighborNode], 1); 
@@ -146,23 +144,19 @@ void main(){
 	barrier();
 
     
-    float t = 0.0;
-    while (t < totalTime) {
+    // float t = 0.0;
+    // while (t < totalTime) {
+    //     meet(idx);
 
-        float u = random();
-        if(u < 0.33){
-            meet(idx);
-        }else if(u < 0.66){        
-            recover(idx);
-        }else {    
-            diffuse(idx);
-        }
-        barrier();
-        t += dt;
-    }
+    //     recover(idx);
+    //     barrier();
+    //     diffuse(idx);
+
+    //     t += dt;
+    // }
 
     lastResults[idx * 2 + 0] = S[idx]; 
     lastResults[idx * 2 + 1] = I[idx]; 
-
+    // lastResults[neighborNode * 2 + 0] = S[neighborNode];
+    // lastResults[neighborNode * 2 + 1] = I[neighborNode];
 }
-
